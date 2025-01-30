@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+##
+## EPITECH PROJECT, 2024
+## B-MAT-100-LIL-1-1-103cipher-leo.batilliot
+## File description:
+## 103cypher
+##
+import math, sys
+
+arguments = sys.argv
+
+if (len(arguments) == 2 and arguments[1] == "-h"):
+    print("CIPHER USAGE\n"
+          "./103cipher message key flag\n"
+          "message :\t the message you want to encrypt/decrypt\n"
+          "key \t\t the message's key\n"
+          "flag \t\t 0 for encryption, 1 for decryption")
+    sys.exit(0)
+
+if (len(arguments) != 4):
+    sys.stderr.write("incorrect number of arguments use -h for help\n")
+    sys.exit(84)
+
+
+
+def key_string_to_matrix(input_string):
+    size = 0
+
+    while(size ** 2 < len(input_string)):
+        size += 1
+    input_string += '\0' * (size ** 2 - len(input_string))
+    ascii_values = [ord(char) for char in input_string]
+    matrix = [ascii_values[i:i + size] for i in range(0, len(ascii_values), size)]
+
+    return matrix
+
+def string_to_message_matrix(message, key):
+    key_size = len(key)
+
+    while len(message) % key_size != 0:
+        message += '\0'
+    ascii_values = [ord(char) for char in message]
+    matrix = [ascii_values[i:i + key_size] for i in range(0, len(ascii_values), key_size)]
+
+    return matrix
+
+
+
+def matrix_multiply(matrix1, matrix2):
+    if len(matrix1[0]) != len(matrix2):
+        sys.exit(84)
+
+    result = []
+
+    for i in range(len(matrix1)):
+        row = []
+        for j in range(len(matrix2[0])):
+            value = sum(matrix1[i][k] * matrix2[k][j] for k in range(len(matrix2)))
+            row.append(value)
+        result.append(row)
+
+    return result
+
+
+
+def cofactor_matrix_3x3(matrix, determinant):
+    inversed_determinant = 1 / determinant
+
+    lign1 = [(matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) * inversed_determinant, 
+             (-1 * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])) * inversed_determinant,
+             (matrix[1][0] * matrix[2][1] - matrix[2][0] * matrix[1][1]) * inversed_determinant]
+    lign2 = [(-1 * (matrix[0][1] * matrix[2][2] - matrix[0][2] * matrix[2][1])) * inversed_determinant,
+             (matrix[0][0] * matrix[2][2] - matrix[2][0] * matrix[0][2]) * inversed_determinant,
+             (-1 * (matrix[0][0] * matrix[2][1] - matrix[0][1] * matrix[2][0])) * inversed_determinant]
+    lign3 = [(matrix[0][1] * matrix[1][2] - matrix[1][1] * matrix[0][2]) * inversed_determinant,
+             (-1 * (matrix[0][0] * matrix[1][2] - matrix[1][0] * matrix[0][2])) * inversed_determinant,
+             (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) * inversed_determinant]
+
+    return [[lign1[0], lign2[0], lign3[0]], [lign1[1], lign2[1], lign3[1]], [lign1[2], lign2[2], lign3[2]]]
+
+
+
+def inverse_matrix_3x3(matrix):
+    determinant = (
+        matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
+    )
+    if determinant == 0:
+        sys.stderr.write("The key's matrix's determinant is 0, thus decryption is not possible\n")
+        sys.exit(84)
+
+    return cofactor_matrix_3x3(matrix, determinant)
+
+
+
+def inverse_matrix_2x2(matrix):
+    determinant = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+    if determinant == 0:
+        sys.stderr.write("The key's matrix's determinant is 0, thus decryption is not possible\n")
+        sys.exit(84)
+    return [[matrix[1][1] / determinant, -matrix[0][1] / determinant],
+            [-matrix[1][0] / determinant, matrix[0][0] / determinant],]
+
+
+
+def inverse_matrix(matrix):
+    if len(matrix) == 2:
+        return inverse_matrix_2x2(matrix)
+    elif len(matrix) == 3:
+        return inverse_matrix_3x3(matrix)
+    else:
+        sys.exit(84)
+
+
+
+def round_to_three_decimals(number):
+    if abs(number) < 1e-15:
+        return 0
+    return round(number, 3)
+
+
+
+def parse_ciphered_message(message, key_size):
+    ciphered_values = []
+    row = []
+    value = 0
+    count = 0
+
+    for char in message:
+        if char != " ":
+            value = value * 10 + int(char)
+
+        else:
+            row.append(value)
+            value = 0
+            count += 1
+
+        if count == key_size:
+            ciphered_values.append(row)
+            row = []
+            count = 0
+
+    if count != 0:
+        row.append(value)
+        while len(row) < key_size:
+            row.append(0)
+        ciphered_values.append(row)
+
+    return ciphered_values
+
+
+
+
+def clamp(value, min_value, max_value):
+    return max(min_value, min(max_value, value))
+
+
+
+key_matrix = key_string_to_matrix(arguments[2])
+
+if arguments[3] == "1":
+    inverse_key = inverse_matrix(key_matrix)
+    ciphered_matrix = parse_ciphered_message(arguments[1], len(key_matrix))
+    decrypted_matrix = matrix_multiply(ciphered_matrix, inverse_key)
+
+    print("Key matrix:")
+    for row in inverse_key:
+        print("\t".join(map(lambda x: str(round_to_three_decimals(x)), row)))
+
+    decrypted_message = "".join(
+        chr(int(round(clamp(value, 0, 127))))
+        for row in decrypted_matrix
+        for value in row
+    ).rstrip('\0')
+
+    print("\nDecrypted message:")
+    print(decrypted_message)
+
+elif arguments[3] == "0":
+    message_matrix = string_to_message_matrix(arguments[1], key_matrix)
+    encrypted_matrix = matrix_multiply(message_matrix, key_matrix)
+
+    print("Key matrix:")
+    for row in key_matrix:
+        print("\t".join(map(str, row)))
+
+    print("\nEncrypted message:")
+    print(" ".join(map(str, [value for row in encrypted_matrix for value in row])))
+
+else:
+    sys.exit(84)

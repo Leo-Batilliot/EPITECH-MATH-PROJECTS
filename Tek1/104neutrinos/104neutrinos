@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+##
+## EPITECH PROJECT, 2024
+## B-MAT-100-LIL-1-1-104neutrinos-leo.batilliot
+## File description:
+## 104neutrinos
+##
+import sys, math
+
+arguments = sys.argv
+
+def usage():
+    print("USAGE")
+    print("    ./104neutrinos n a h sd\n")
+    print("DESCRIPTION")
+    print("    n    number of values")
+    print("    a    arithmetic mean")
+    print("    h    harmonic mean")
+    print("    sd   standard deviation")
+    sys.exit(0)
+
+def compute_new_values(count, arithmetic_mean, harmonic_mean, standard_deviation, new_value):
+    new_count = count + 1
+    new_arithmetic_mean = (count * arithmetic_mean + new_value) / new_count
+    new_variance = ((count * (standard_deviation ** 2 + arithmetic_mean ** 2) + new_value ** 2) / new_count) - new_arithmetic_mean ** 2
+    new_standard_deviation = math.sqrt(new_variance)
+    new_root_mean_square = math.sqrt((count * (arithmetic_mean ** 2 + standard_deviation ** 2) + new_value ** 2) / new_count)
+    if new_value == 0:
+        new_harmonic_mean = 0
+    else:
+        new_harmonic_mean = new_count / (1 / new_value + count / harmonic_mean)
+
+    return new_count, new_arithmetic_mean, new_harmonic_mean, new_standard_deviation, new_root_mean_square
+
+
+if len(arguments) == 2 and arguments[1] == "-h":
+    usage()
+
+if len(arguments) != 5:
+    sys.exit(84)
+
+try:
+    count = int(arguments[1])
+    arithmetic_mean = float(arguments[2])
+    harmonic_mean = float(arguments[3])
+    standard_deviation = float(arguments[4])
+
+except ValueError:
+    print("Error: All arguments must be numbers.", file=sys.stderr)
+    sys.exit(84)
+
+if count <= 0 or harmonic_mean <= 0 or standard_deviation < 0:
+    print("Error: Invalid arguments.", file=sys.stderr)
+    sys.exit(84)
+
+while True:
+    try:
+        user_input = input("Enter next value: ")
+        if user_input.strip().upper() == "END":
+            break
+
+        new_value = float(user_input)
+        count, arithmetic_mean, harmonic_mean, standard_deviation, root_mean_square = compute_new_values(count, arithmetic_mean, harmonic_mean, standard_deviation, new_value)
+
+        print(f"    Number of values:\t{count}")
+        print(f"    Standard deviation:\t{standard_deviation:.2f}")
+        print(f"    Arithmetic mean:\t{arithmetic_mean:.2f}")
+        print(f"    Root mean square:\t{root_mean_square:.2f}")
+        print(f"    Harmonic mean:\t{harmonic_mean:.2f}\n")
+
+    except ValueError:
+        print("Error: Invalid input. Please enter a number or END.", file=sys.stderr)
+        sys.exit(84)

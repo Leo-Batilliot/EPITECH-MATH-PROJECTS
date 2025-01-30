@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+##
+## EPITECH PROJECT, 2025
+## B-MAT-100-LIL-1-1-105demography-leo.batilliot
+## File description:
+## 105demography
+##
+import sys, math, csv
+filename = "105demography_data.csv"
+args = sys.argv
+years = []
+
+def print_help():
+    print("USAGE")
+    print("    ./105demography [code]+\n")
+    print("DESCRIPTION")
+    print("    code country code")
+    return 0
+
+def load_years():
+    for i in range(1960, 2018):
+        years.append(i)
+
+def country_loader(data, index):
+    countries =[]
+    for i in range (0, len(data)):
+        countries.append(data[i][index])
+    return countries
+
+def load_countries(data, index):
+    countries =[]
+    j = 0
+    for i in range (0, len(data)):
+        try:
+            index[j]
+        except:
+            break
+        if i == index[j]:
+            countries.append(data[i])
+            j+=1
+    return countries
+
+def open_file():
+    data = []
+    with open(filename, 'r') as file:
+        content = csv.reader(file, delimiter=';')
+        next(content)
+        for row in content:
+            data.append(row)
+        return data
+
+def get_country_index(acronyms, names):
+    index = []
+    for i in range (1, len(args)):
+        if args[i] not in acronyms:
+            sys.exit(84)
+    print("Country:", end="")
+    for i in range(1, len(args)):
+        for y in range(0, len(acronyms)):
+            if args[i] == acronyms[y]:
+                print("", names[y], end="")
+                index.append(y)
+    index.sort()
+    print("")
+    return(index)
+
+def countries_total(countries):
+    total_countries = [0] * 58
+    for i in range(0, len(countries)):
+        for j in range(2, len(countries[i])):
+            total_countries[j - 2] += int(countries[i][j])
+    return total_countries
+
+def file_parsing_main():
+    data =  open_file()
+    acronyms = country_loader(data, 1)
+    names = country_loader(data, 0)
+    index = get_country_index(acronyms, names)
+    countries = load_countries(data, index)
+    load_years()
+    return countries
+
+def get_x_y(values):
+    a_num = values[0] * values[2] - values[1] * values[3]
+    a_denum = len(years) * values[2] - values[1] ** 2
+    b_num = (len(years) * values[3]) - (values[0] * values[1])
+    b_denum = len(years) * values[2] - math.pow(values[1], 2)
+    if b_denum == 0 or a_denum == 0:
+        print("Division by 0")
+        sys.exit(84)
+    a = a_num / a_denum
+    b = b_num / b_denum
+    return a, b
+
+def get_values(tab, option):
+    values = [0, 0, 0, 0]
+
+    for i in range(0, len(tab)):
+        if option == 1:
+            values[0] += tab[i]
+            values[1] += years[i]
+            values[2] += pow(years[i], 2)
+        if option == 2:
+            values[0] += years[i]
+            values[1] += tab[i]
+            values[2] += pow(tab[i], 2)
+        values[3] += tab[i] * years[i]
+    return values
+
+def root_mean_square_deviation(a, b, option):
+    res = 0
+    for i in range(0, len(total_countries)):
+        if (option == 1):
+            func = years[i] * b + a
+        elif (option == 2):
+            func = (years[i] - a) / b
+        res += ((func - total_countries[i]) ** 2 / len(total_countries))
+    print("\tRoot-mean-square deviation:", format(math.sqrt(res) / 1000000, ".2f"))
+
+def Fit1(total_countries):
+    print("Fit1")
+    values = get_values(total_countries, 1)
+    x, y = get_x_y(values)
+    print("\tY =", format(y/1000000, ".2f"), "X ", end="")
+    print('+' if x > 0 else '-', end=" ")
+    print(format(math.sqrt((x/1000000) ** 2), ".2f"))
+    root_mean_square_deviation(x, y, 1)
+    print("\tPopulation in 2050:", format((2050 * y + x) / 1000000, ".2f"))
+
+def Fit2(total_countries):
+    print("Fit2")
+    values = get_values(total_countries, 2)
+    x, y = get_x_y(values)
+    print("\tX =", format(y * 1000000, ".2f"), "Y ", end="")
+    print('+' if y > 0 else '-', end=" ")
+    print(format(math.sqrt((x) ** 2), ".2f"))
+    root_mean_square_deviation(x, y, 2)
+    print("\tPopulation in 2050:", format(((2050 - x) / y / 1000000), ".2f"))
+
+def get_correlation(years, total_countries):
+    l = len(years)
+    variance_x = sum((years[i] - sum(years) / l) ** 2 for i in range(l))
+    variance_y = sum((total_countries[i] - sum(total_countries) / l) ** 2 for i in range(l))
+    if variance_x == 0 or variance_y == 0:
+        print("Division by 0")
+        sys.exit(84)
+    return sum((years[i] - sum(years) / l) * (total_countries[i] - sum(total_countries) / l) for i in range(l)) / math.sqrt(variance_x * variance_y)
+
+
+if len(args) < 2:
+    exit(84)
+if len(args) == 2 and args[1] == '-h':
+    exit(print_help())
+    exit(0)
+
+total_countries = countries_total(file_parsing_main())
+Fit1(total_countries)
+Fit2(total_countries)
+print("Correlation:", format(get_correlation(years, total_countries) , ".4f"))
